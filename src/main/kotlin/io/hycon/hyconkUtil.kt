@@ -19,4 +19,21 @@ class HyconkUtil {
             return hyc
         }
     }
+
+    fun hyconToString(value: Long):String {
+        val units = value/1000000000L
+        val dec = value%1000000000L
+        if (dec == 0L) {
+            return units.toString()
+        }
+        var digString = dec.toString()
+        var prefix = ""
+        if (digString.length < 9) {
+            prefix = "0".repeat(9 - digString.length)
+        }
+        while (digString.endsWith('0')) {
+            digString = digString.drop(1)
+        }
+        return "$units.$prefix$digString"
+    }
 }
