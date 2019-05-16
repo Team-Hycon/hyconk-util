@@ -12,4 +12,11 @@ class HyconKUtilTest {
         assertEquals(1000000000L, HyconkUtil().hyconFromString("1."))
         assertEquals(1010000000L, HyconkUtil().hyconFromString("1.01"))
     }
+
+    @Test fun testHyconToString() {
+        assertEquals("0", HyconkUtil().hyconToString(0L))
+        assertEquals("0.000000001",HyconkUtil().hyconToString(1L))
+        assertEquals("1", HyconkUtil().hyconToString(1000000000L))
+        assertEquals("1.0101", HyconkUtil().hyconToString(1010100000L))
+    }
 }
