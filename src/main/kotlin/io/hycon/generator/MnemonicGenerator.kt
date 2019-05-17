@@ -1,12 +1,11 @@
 package io.hycon.generator
 
+import org.bouncycastle.crypto.digests.SHA512Digest
+import org.bouncycastle.crypto.params.KeyParameter
 import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.util.*
-
-import org.bouncycastle.crypto.digests.SHA512Digest
-import org.bouncycastle.crypto.params.KeyParameter
 
 object MnemonicGenerator {
     private const val SEED_ITERATIONS = 2048
@@ -114,7 +113,7 @@ object MnemonicGenerator {
             SEED_ITERATIONS
         )
 
-        return (gen.generateDerivedParameters(SEED_KEY_SIZE) as KeyParameter).getKey()
+        return (gen.generateDerivedParameters(SEED_KEY_SIZE) as KeyParameter).key
     }
 
     private fun validateMnemonic(mnemonic: String?) {

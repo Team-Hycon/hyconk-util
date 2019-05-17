@@ -11,6 +11,9 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib","1.3.31"))
     compile("org.bouncycastle:bctls-jdk15on:1.61")
+    compile("com.rfksystems:blake2b:1.0.0")
+    compile("ru.d-shap:hex:1.2")
+    compile("org.bitcoinj:core:0.15")
     testImplementation("junit:junit:4.12")
 }
 
