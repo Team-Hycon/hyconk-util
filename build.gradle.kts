@@ -14,6 +14,8 @@ dependencies {
     compile("com.rfksystems:blake2b:1.0.0")
     compile("ru.d-shap:hex:1.2")
     compile("org.bitcoinj:core:0.15")
+    compile("com.google.protobuf:protobuf-parent:3.8.0-rc-1")
+    compile("org.web3j:crypto:4.3.0")
     testImplementation("junit:junit:4.12")
 }
 

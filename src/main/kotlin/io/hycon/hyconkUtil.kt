@@ -1,25 +1,28 @@
 package io.hycon
 
+import com.google.protobuf.ByteString
 import com.rfksystems.blake2b.Blake2b
 import com.rfksystems.blake2b.security.Blake2bProvider
 import io.hycon.generator.MnemonicGenerator
 import io.hycon.mnemonic.English
 import io.hycon.mnemonic.Korean
+import io.hycon.proto.TxOuterClass.Tx
 import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
 import org.bitcoinj.core.ECKey
+import org.bitcoinj.core.NetworkParameters
+import org.bitcoinj.crypto.ChildNumber
+import org.bitcoinj.crypto.DeterministicKey
+import org.bitcoinj.crypto.HDKeyDerivation
 import org.bouncycastle.util.encoders.DecoderException
+import org.web3j.crypto.ECKeyPair
+import org.web3j.crypto.Sign
 import ru.d_shap.hex.HexHelper
 import java.io.IOException
+import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import java.security.Security.addProvider
-import org.bitcoinj.crypto.HDKeyDerivation
-import org.bitcoinj.crypto.ChildNumber
-import org.bitcoinj.crypto.DeterministicKey
-
-
-
 
 
 
@@ -140,6 +143,91 @@ class HyconkUtil {
         val wordList = getBip39WordList(language)
 
         return MnemonicGenerator.generateMnemonic(wordList)
+    }
+
+    @Throws(NoSuchAlgorithmException::class)
+    fun createWallet(mnemonic: String, passphrase: String): Array<String?> {
+
+        val seed = MnemonicGenerator.generateSeed(mnemonic, passphrase)
+        val masterKey = HDKeyDerivation.createMasterPrivateKey(seed)
+        val finalKeyPair = fromBIP44HDPath(masterKey, 0)
+
+        val result = arrayOfNulls<String>(2) // 0 : address, 1 : private key
+
+        result[0] = addressToString(publicKeyToAddress(finalKeyPair.pubKey))
+        result[1] = encodeHexByteArrayToString(finalKeyPair.privKeyBytes)
+
+        return result
+
+    }
+
+    @Throws(Exception::class)
+    fun createHDWallet(mnemonic: String, passphrase: String): String {
+        val seed = MnemonicGenerator.generateSeed(mnemonic, passphrase)
+        val masterKey = HDKeyDerivation.createMasterPrivateKey(seed)
+
+        if (!masterKey.hasPrivKey()) {
+            throw Exception("masterKey does not have Extended PrivateKey")
+        }
+
+        return masterKey.serializePrivB58(NetworkParameters.fromID(NetworkParameters.ID_MAINNET))
+    }
+
+    @Throws(DecoderException::class, NoSuchAlgorithmException::class)
+    fun getWalletFromExtKey(privateExtendedKey: String, index: Int): Array<String?> {
+        val masterKey = DeterministicKey.deserializeB58(
+            privateExtendedKey,
+            NetworkParameters.fromID(NetworkParameters.ID_MAINNET)!!
+        )
+
+        val finalKeyPair = fromBIP44HDPath(masterKey, index)
+
+        val result = arrayOfNulls<String>(2) // 0 : address, 1 : private key
+
+        result[0] = addressToString(publicKeyToAddress(finalKeyPair.pubKey))
+        result[1] = encodeHexByteArrayToString(finalKeyPair.privKeyBytes)
+
+        return result
+
+    }
+
+    @Throws(Exception::class)
+    fun signTx(
+        fromAddress: String,
+        toAddress: String,
+        amount: String,
+        minerFee: String,
+        nonce: Int,
+        privatekey: String,
+        networkId: String
+    ): Array<String?> {
+        val from = addressToByteArray(fromAddress)
+        val to = addressToByteArray(toAddress)
+
+        val txBuilder = Tx.newBuilder()
+        txBuilder.from = ByteString.copyFrom(from)
+        txBuilder.to = ByteString.copyFrom(to)
+        txBuilder.amount = hyconFromString(amount)
+        txBuilder.fee = hyconFromString(minerFee)
+        txBuilder.nonce = nonce
+
+        val newTxBuilder = Tx.newBuilder(txBuilder.build())
+        newTxBuilder.networkid = networkId
+        val newTx = newTxBuilder.build()
+        val newTxData = newTx.toByteArray()
+        val newTxHash = blake2bHash(newTxData)
+        val ecKeyPair = ECKeyPair.create(decodeHexStringToByteArray(privatekey))
+        val signatureData = Sign.signMessage(newTxHash, ecKeyPair, false)
+        val signature =
+            "${encodeHexByteArrayToString(signatureData.r)}${encodeHexByteArrayToString(signatureData.s)}"
+        val recovery = (BigInteger(signatureData.v) - BigInteger.valueOf(27L)).toString()
+
+        val result = arrayOfNulls<String>(2)
+
+        result[0] = signature
+        result[1] = recovery
+
+        return result
     }
 
     private fun getBip39WordList(language: String): Array<String> {
